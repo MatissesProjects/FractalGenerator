@@ -8,14 +8,15 @@ import pathlib
 import PIL
 import scipy.ndimage as nd
 
-path = "./cubic3"
-steps = 1000
+path = "./cubic13"
+steps = 101
+bounds = 3.0j
+startAt = 0
+detailLevel = 30 # bigger takes longer
+stepSize = 0.004 # smaller takes longer and is a bigger output image
 
 sess = tf.Session()
 
-startValue = 789
-detailLevel = 10
-  
 
 def DisplayFractal(a, colorConsts, outputNumber=1,  fmt='jpeg'):
   """Display an array of iteration counts as a
@@ -55,15 +56,15 @@ def generateImage(wiggleFactor, outputNumber, colorConsts):
 
 with tf.device('/gpu:0'):
   # Use NumPy to create a 2D array of complex numbers on [-2,2]x[-2,2]
-  Y, X = np.mgrid[-2:2:0.005, -2:2:0.005]
+  Y, X = np.mgrid[-2:2:stepSize, -2:2:stepSize]
   Z = X+1j*Y
 
   xs = tf.constant(Z.astype("complex64"))
   ns = tf.Variable(tf.zeros_like(xs, "float32"))
-  
+
 zs = tf.Variable(xs)
 
-wiggleFactors = np.linspace(-2.5j, 2.5j, num=steps)
+wiggleFactors = np.linspace(-bounds, 0, num=steps)
 wiggleLen = len(wiggleFactors)
 colorConsts = [10, 80.5, 23.5]
 
@@ -71,7 +72,7 @@ pathlib.Path(path).mkdir(exist_ok=True)
 
 for i in range(wiggleLen):
   # TODO: add a continue flag
-  if i > startValue:
+  if i >= startAt:
     generateImage(wiggleFactor=wiggleFactors[i], outputNumber=i, colorConsts=colorConsts)
     # generateImage(wiggleFactor=wiggleFactors[i], outputNumber=i, colorConsts=colorConsts)
     if i % int(wiggleLen / 10) == 0:
