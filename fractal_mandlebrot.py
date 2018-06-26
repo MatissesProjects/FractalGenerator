@@ -22,14 +22,19 @@ print(args)
 
 sess = tf.Session()
 
+def sinh(x):
+  return (tf.exp(x) - tf.exp(-x)) / 2
+
 def DisplayFractal(a, colorConsts, outputNumber=1,  fmt='jpeg'):
   """Display an array of iteration counts as colorful picture of a fractal."""
   a_cyclic = (6.28*a/20.0).reshape(list(a.shape)+[1])
+  
   img = np.concatenate([colorConsts[0]+20*np.cos(a_cyclic),
                         colorConsts[1]+50*np.sin(a_cyclic),
                         colorConsts[2]-80*np.cos(a_cyclic)], 2)
-  img[a==a.max()] = 0
-  a = img
+  # img[a==a.max()] = 0
+
+  a = img/img.max() * 255
   a = np.uint8(np.clip(a, 0, 255))
   PIL.Image.fromarray(a).save("%s/output%s.jpeg" % (args.path, outputNumber), fmt)
 
@@ -37,7 +42,7 @@ def generateImage(wiggleFactor, outputNumber, colorConsts):
   tf.global_variables_initializer().run(session=sess)
 
   # Compute the new values of z: z^2 + x
-  zs_ = tf.exp(tf.cos(zs * wiggleFactor))
+  zs_ = tf.exp(sinh(zs * wiggleFactor))
   # zs**3 - zs**2 + tf.sqrt(zs) + wiggleFactor
   # Have we diverged with this new value?
   not_diverged = tf.abs(zs_) < args.diverged
@@ -52,7 +57,13 @@ def generateImage(wiggleFactor, outputNumber, colorConsts):
     ns.assign_add(tf.cast(not_diverged, "float32"))
     )
 
-  for i in range(args.detailLevel): step.run(session=sess)
+  currentImage = 0
+  try:
+    for i in range(args.detailLevel): 
+      step.run(session=sess)
+      currentImage = i
+  except Exception as e:
+    print("Error %s\n\nLast Image %s" % (e, currentImage))
 
   DisplayFractal(ns.eval(session=sess), colorConsts=colorConsts, outputNumber=outputNumber)
 
